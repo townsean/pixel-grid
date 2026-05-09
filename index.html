@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelGrid - Pixel Art Color Counter & Grid Tool</title>
+    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P|Open+Sans" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>PixelGrid</h1>
+        <p class="tagline">Turn any image into a precise pixel build map</p>
+    </header>
+    
+    <main>
+        <section id="upload-container">
+            <h2>1. Upload Image</h2>
+            <input type="file" id="image" accept="image/*">
+            <canvas id="original-canvas" style="display:none;"></canvas>
+        </section>
+
+        <section id="visualization-section" class="invisible">
+            <h2>2. Pixel Grid Visualization</h2>
+            
+            <div class="controls">
+                <label>Pixel Size: 
+                    <input type="range" id="pixel-scale" min="6" max="40" value="16" step="1">
+                    <span id="scale-value">16px</span>
+                </label>
+                
+                <div class="presets">
+                    <button data-size="8">8</button>
+                    <button data-size="12">12</button>
+                    <button data-size="16" class="active">16</button>
+                    <button data-size="24">24</button>
+                    <button data-size="32">32</button>
+                </div>
+
+                <label><input type="checkbox" id="show-grid" checked> Grid Lines</label>
+                <label><input type="checkbox" id="circle-mode"> Circular Pixels</label>
+                
+                <label title="Group similar colors">
+                    <input type="checkbox" id="enable-tolerance"> Tolerance
+                    <input type="number" id="tolerance" value="10" min="0" max="50" style="width:60px;">
+                </label>
+
+                <div class="zoom-info">Zoom: <span id="zoom-level">100%</span></div>
+                <label><input type="checkbox" id="dark-mode"> Dark Mode</label>
+                
+                <label>Print Scale: 
+                    <input type="number" id="print-scale" value="20" min="10" max="40" style="width:70px;"> px
+                </label>
+            </div>
+
+            <canvas id="pixel-grid-canvas"></canvas>
+
+            <div class="export-buttons">
+                <button id="export-grid-png">Export Grid PNG</button>
+                <button id="generate-printable">Generate Printable</button>
+                <button id="export-csv">Export CSV</button>
+                <button id="save-settings" style="display: none;">💾 Save Settings</button>
+                <button id="load-settings" style="display: none;">📂 Load Settings</button>
+            </div>
+        </section>
+
+        <section id="pixel-count-container" class="invisible">
+            <h2>3. Color Counts</h2>
+            <p><span id="color-count"></span> unique colors</p>
+            <div id="color-swatches" class="color-swatches"></div>
+        </section>
+    </main>
+
+    <div id="wait-indicator" class="invisible">Processing image...</div>
+
+    <footer>
+        <p>PixelGrid — Free &amp; Open Source • Made for pixel artists &amp; makers</p>
+        <a href="https://github.com/townsean/canvas-pixel-color-counter" target="_blank">Based on V1 by townsean</a>
+    </footer>
+
+    <script src="counter.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

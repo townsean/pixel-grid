@@ -67,23 +67,37 @@ body {
 #pixel-grid-canvas:active { cursor: grabbing; }
 
 .color-swatches {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 12px;
     justify-content: center;
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 10px;
 }
+/* Make swatches look cleaner in columns */
 .color-swatch-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     background: white;
-    padding: 6px 10px;
-    border-radius: 4px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s;
 }
+
+.color-swatch-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
 .color-swatch {
-    width: 32px;
-    height: 32px;
-    border: 1px solid #ccc;
+    width: 42px;
+    height: 42px;
+    border: 2px solid #ddd;
+    flex-shrink: 0;
+    border-radius: 4px;
 }
 
 .export-buttons button {
@@ -118,6 +132,14 @@ body.dark-mode .color-swatch-container {
 body.dark-mode #pixel-grid-canvas {
     border-color: #555;
     background: #2a2a2a;
+}
+
+/* Dark mode support */
+body.dark-mode .color-swatch-container {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+body.dark-mode .color-swatch {
+    border-color: #555;
 }
 
 /* Responsive */

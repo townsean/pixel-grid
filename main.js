@@ -255,39 +255,102 @@ document.getElementById('generate-printable').addEventListener('click', () => {
     const printScale = parseInt(document.getElementById('print-scale').value) || 20;
 
     const printWin = window.open('', '_blank');
-    const title = `${appState.originalFileName} - Pixel Map`;
-
-    printWin.document.write(`
+    const doc = printWin.document;
+    
+    doc.open();
+    doc.write(`
         <!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
-            <title>${title}</title>
+            <title>PixelGrid — ${appState.originalFileName}</title>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; background:#f8f8f8; }
-                h1 { text-align:center; }
-                .info { text-align:center; margin:15px 0; color:#444; }
-                canvas { display:block; margin:20px auto; border:3px solid #333; box-shadow:0 4px 15px rgba(0,0,0,0.2); }
-                .legend { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; max-width:1100px; margin:30px auto; }
-                .legend-item { display:flex; align-items:center; gap:10px; background:white; padding:8px 14px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
-                .legend-swatch { width:30px; height:30px; border:1px solid #aaa; }
-                @media print { body { margin:10px; background:white; } canvas { box-shadow:none; border:2px solid #222; } }
+                body { 
+                    font-family: Arial, Helvetica, sans-serif; 
+                    margin: 20px; 
+                    background: #f8f8f8;
+                }
+                h1 { text-align: center; margin: 20px 0 10px; }
+                .info { 
+                    text-align: center; 
+                    margin-bottom: 25px; 
+                    color: #444; 
+                    font-size: 1.05em;
+                }
+                canvas { 
+                    display: block; 
+                    margin: 0 auto 30px; 
+                    border: 3px solid #222; 
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+                }
+                
+                /* Legend with uniform columns */
+                .legend {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                    gap: 12px;
+                    max-width: 1100px;
+                    margin: 30px auto;
+                    padding: 0 10px;
+                }
+                .legend-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    background: white;
+                    padding: 10px 14px;
+                    border-radius: 6px;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                }
+                .legend-swatch {
+                    width: 38px;
+                    height: 38px;
+                    border: 2px solid #ccc;
+                    flex-shrink: 0;
+                    border-radius: 4px;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+
+                @media print {
+                    body { 
+                        margin: 15px; 
+                        background: white; 
+                    }
+                    canvas { 
+                        box-shadow: none; 
+                        border: 2px solid #222; 
+                    }
+                    .legend-item { 
+                        box-shadow: none; 
+                        border: 1px solid #ddd; 
+                    }
+                    .legend-swatch {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        border: 1px solid #999;
+                    }
+                }
             </style>
         </head>
         <body>
-            <h1>Pixel Color Map — ${appState.originalFileName}</h1>
-            <div class="info">Print Scale: ${printScale}px • ${useCircles ? 'Circular' : 'Square'} pixels • ${showGrid ? 'With Grid' : 'No Grid'}</div>
+            <h1>PixelGrid — ${appState.originalFileName}</h1>
+            <div class="info">
+                Print Scale: ${printScale}px per pixel • 
+                ${useCircles ? 'Circular' : 'Square'} pixels • 
+                ${showGrid ? 'With Grid Lines' : 'No Grid Lines'}
+            </div>
             <canvas id="print-canvas"></canvas>
             <div class="legend" id="legend"></div>
         </body>
         </html>
     `);
-
-    printWin.document.close();
+    doc.close();
 
     setTimeout(() => {
-        const pCanvas = printWin.document.getElementById('print-canvas');
+        const pCanvas = doc.getElementById('print-canvas');
         const pCtx = pCanvas.getContext('2d');
+        
         pCanvas.width = appState.width * printScale;
         pCanvas.height = appState.height * printScale;
         pCtx.imageSmoothingEnabled = false;
@@ -319,18 +382,27 @@ document.getElementById('generate-printable').addEventListener('click', () => {
             }
         }
 
-        const legendDiv = printWin.document.getElementById('legend');
-        const sorted = Object.entries(appState.colorCounts).sort((a, b) => b[1] - a[1]);
-        const total = appState.width * appState.height;
+        // Legend
+        const legendDiv = doc.getElementById('legend');
+        const sortedColors = Object.entries(appState.colorCounts)
+            .sort((a, b) => b[1] - a[1]);
 
-        sorted.forEach(([color, count]) => {
-            const pct = ((count / total) * 100).toFixed(2);
-            const item = document.createElement('div');
+        const totalPixels = appState.width * appState.height;
+
+        sortedColors.forEach(([color, count]) => {
+            const percentage = ((count / totalPixels) * 100).toFixed(2);
+            const item = doc.createElement('div');
             item.className = 'legend-item';
-            item.innerHTML = `<div class="legend-swatch" style="background:${color}"></div><strong>${color}</strong> — ${count.toLocaleString()} px (${pct}%)`;
+            item.innerHTML = `
+                <div class="legend-swatch" style="background-color: ${color};"></div>
+                <div>
+                    <strong>${color}</strong><br>
+                    <small>${count.toLocaleString()} pixels (${percentage}%)</small>
+                </div>
+            `;
             legendDiv.appendChild(item);
         });
-    }, 100);
+    }, 150);
 });
 
 // ====================== COLOR SWATCHES ======================

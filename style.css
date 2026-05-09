@@ -2,26 +2,50 @@ header {
     text-align: center;
     margin-bottom: 30px;
 }
+
 header h1 {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'Press Start 2P', monospace;
     font-size: 2.8rem;
     margin: 10px 0 8px;
     color: #222;
 }
+
+footer a {
+    margin-top: 4rem;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.75rem;
+    color: #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+        text-decoration: none;
+
+        > img {
+            width: 28px;
+            margin-left: 6px;
+        }
+}
+
+body.dark-mode footer a,
 body.dark-mode header h1 {
     color: #fff;
 }
+
 .tagline {
     font-size: 1.1rem;
     color: #555;
     margin: 0;
     font-weight: 400;
 }
+
 body.dark-mode .tagline {
     color: #aaa;
 }
 
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: 'Open Sans', sans-serif;
     margin: 0;
@@ -30,7 +54,9 @@ body {
     color: #222;
     line-height: 1.5;
 }
-.controls, .export-buttons {
+
+.controls,
+.export-buttons {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
@@ -41,22 +67,26 @@ body {
     background: #f0f0f0;
     border-radius: 8px;
 }
+
 .controls label {
     display: flex;
     align-items: center;
     gap: 8px;
     white-space: nowrap;
 }
+
 .presets button {
     padding: 6px 12px;
     font-family: 'Press Start 2P', cursive;
     font-size: 0.9rem;
     cursor: pointer;
 }
+
 .presets button.active {
     background: #333;
     color: white;
 }
+
 #pixel-grid-canvas {
     border: 3px solid #333;
     background: #fff;
@@ -64,7 +94,10 @@ body {
     max-width: 100%;
     cursor: grab;
 }
-#pixel-grid-canvas:active { cursor: grabbing; }
+
+#pixel-grid-canvas:active {
+    cursor: grabbing;
+}
 
 .color-swatches {
     display: grid;
@@ -75,6 +108,7 @@ body {
     margin: 20px auto;
     padding: 0 10px;
 }
+
 /* Make swatches look cleaner in columns */
 .color-swatch-container {
     display: flex;
@@ -112,7 +146,7 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.8);
+    background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 20px 40px;
     border-radius: 8px;
@@ -125,10 +159,12 @@ body.dark-mode {
     background: #1e1e1e;
     color: #eee;
 }
+
 body.dark-mode .controls,
 body.dark-mode .color-swatch-container {
     background: #2a2a2a;
 }
+
 body.dark-mode #pixel-grid-canvas {
     border-color: #555;
     background: #2a2a2a;
@@ -138,11 +174,15 @@ body.dark-mode #pixel-grid-canvas {
 body.dark-mode .color-swatch-container {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
+
 body.dark-mode .color-swatch {
     border-color: #555;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .controls { flex-direction: column; align-items: flex-start; }
+    .controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }

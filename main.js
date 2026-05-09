@@ -93,7 +93,6 @@ function getTolerance() {
 }
 
 // ====================== RENDERING ======================
-// ====================== RENDERING ======================
 function renderPixelGrid() {
     const scale = parseInt(document.getElementById('pixel-scale').value);
     const useCircles = document.getElementById('circle-mode').checked;
@@ -113,7 +112,7 @@ function renderPixelGrid() {
     for (let y = 0; y < appState.height; y++) {
         for (let x = 0; x < appState.width; x++) {
             const i = (y * appState.width + x) * 4;
-            gridCtx.fillStyle = `rgba(${data[i]},${data[i+1]},${data[i+2]},${data[i+3]/255})`;
+            gridCtx.fillStyle = `rgba(${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3] / 255})`;
 
             const px = (x * scale + gridOffsetX) * gridZoom;
             const py = (y * scale + gridOffsetY) * gridZoom;
@@ -260,7 +259,7 @@ function drawColorSwatches(colorCounts) {
         .sort((a, b) => b[1] - a[1])
         .forEach(([color, count]) => {
             const displayColor = formatColor(color, useHex);
-            
+
             const div = document.createElement('div');
             div.className = 'color-swatch-container';
             div.innerHTML = `
@@ -390,7 +389,7 @@ document.getElementById('generate-printable').addEventListener('click', () => {
         for (let y = 0; y < appState.height; y++) {
             for (let x = 0; x < appState.width; x++) {
                 const i = (y * appState.width + x) * 4;
-                pCtx.fillStyle = `rgba(${data[i]},${data[i+1]},${data[i+2]},${data[i+3]/255})`;
+                pCtx.fillStyle = `rgba(${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3] / 255})`;
 
                 const px = x * printScale;
                 const py = y * printScale;

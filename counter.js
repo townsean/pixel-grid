@@ -1,7 +1,7 @@
-self.onmessage = function(e) {
+self.onmessage = function (e) {
     const data = e.data.imageData;
     const tolerance = e.data.tolerance || 0;
-    
+
     const colorMap = new Map();
 
     for (let i = 0; i < data.length; i += 4) {
@@ -25,9 +25,9 @@ self.onmessage = function(e) {
     const colorCounts = {};
     colorMap.forEach((count, key) => {
         const [r, g, b, a] = key.split(',').map(Number);
-        const colorStr = (a === 255) 
-            ? `rgb(${r},${g},${b})` 
-            : `rgba(${r},${g},${b},${(a/255).toFixed(2)})`;
+        const colorStr = (a === 255)
+            ? `rgb(${r},${g},${b})`
+            : `rgba(${r},${g},${b},${(a / 255).toFixed(2)})`;
         colorCounts[colorStr] = count;
     });
 

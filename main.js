@@ -1,4 +1,4 @@
-// ====================== main.js - PixelGrid V2 ======================
+// ====================== main.js - PixelGrid ======================
 const worker = new Worker('./counter.js');
 
 let appState = {
@@ -21,22 +21,16 @@ const gridCanvas = document.getElementById('pixel-grid-canvas');
 const gridCtx = gridCanvas.getContext('2d');
 
 // ====================== COLOR FORMAT HELPERS ======================
-function rgbToHex(r, g, b, a = 255) {
-    return '#' + [r, g, b, a].map(x => x.toString(16).padStart(2, '0')).join('');
+function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
 }
 
 function formatColor(colorStr, useHex) {
     if (!useHex) return colorStr;
-
     const match = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
     if (!match) return colorStr;
-
-    const r = parseInt(match[1]);
-    const g = parseInt(match[2]);
-    const b = parseInt(match[3]);
-    const a = match[4] ? Math.round(parseFloat(match[4]) * 255) : 255;
-
-    return rgbToHex(r, g, b, a);
+    const r = parseInt(match[1]), g = parseInt(match[2]), b = parseInt(match[3]);
+    return rgbToHex(r, g, b);
 }
 
 // ====================== WORKER ======================
@@ -65,7 +59,6 @@ function loadImage(file) {
 
     img.onload = () => {
         resetUI();
-
         const origCanvas = document.getElementById('original-canvas');
         origCanvas.width = img.width;
         origCanvas.height = img.height;
@@ -81,7 +74,6 @@ function loadImage(file) {
             imageData: appState.imageData.data,
             tolerance: getTolerance()
         });
-
         URL.revokeObjectURL(url);
     };
     img.src = url;
@@ -97,51 +89,80 @@ function renderPixelGrid() {
     const scale = parseInt(document.getElementById('pixel-scale').value);
     const useCircles = document.getElementById('circle-mode').checked;
     const showGridLines = document.getElementById('show-grid').checked;
+    const showCoords = document.getElementById('show-coords').checked;
+    const coordInterval = parseInt(document.getElementById('coord-interval').value) || 5;
+
+    const paddingTop = showCoords ? 40 : 5;
+    const paddingLeft = showCoords ? 45 : 5;
 
     const baseWidth = appState.width * scale;
     const baseHeight = appState.height * scale;
 
-    gridCanvas.width = baseWidth * gridZoom;
-    gridCanvas.height = baseHeight * gridZoom;
+    gridCanvas.width = baseWidth * gridZoom + paddingLeft;
+    gridCanvas.height = baseHeight * gridZoom + paddingTop;
 
     gridCtx.imageSmoothingEnabled = false;
     gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
 
+    // Background match page
+    gridCtx.fillStyle = document.body.classList.contains('dark-mode') ? '#1e1e1e' : '#f8f8f8';
+    gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
+
     const data = appState.imageData.data;
 
+    // Draw Pixels
     for (let y = 0; y < appState.height; y++) {
         for (let x = 0; x < appState.width; x++) {
             const i = (y * appState.width + x) * 4;
-            gridCtx.fillStyle = `rgba(${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3] / 255})`;
+            gridCtx.fillStyle = `rgba(${data[i]},${data[i+1]},${data[i+2]},${data[i+3]/255})`;
 
-            const px = (x * scale + gridOffsetX) * gridZoom;
-            const py = (y * scale + gridOffsetY) * gridZoom;
+            const px = paddingLeft + (x * scale + gridOffsetX) * gridZoom;
+            const py = paddingTop + (y * scale + gridOffsetY) * gridZoom;
             const size = scale * gridZoom;
 
             if (useCircles) {
-                const centerX = px + size / 2;
-                const centerY = py + size / 2;
-                const radius = size * 0.42;
-
-                // Fill the circle
+                const cx = px + size / 2;
+                const cy = py + size / 2;
+                const r = size * 0.42;
                 gridCtx.beginPath();
-                gridCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                gridCtx.arc(cx, cy, r, 0, Math.PI * 2);
                 gridCtx.fill();
-
-                // Add border for circles
-                gridCtx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-                gridCtx.lineWidth = Math.max(1.5, size * 0.07); // scales nicely with pixel size
+                gridCtx.strokeStyle = 'rgba(0,0,0,0.5)';
+                gridCtx.lineWidth = Math.max(1.5, size * 0.08);
                 gridCtx.stroke();
             } else {
                 gridCtx.fillRect(px, py, size, size);
             }
 
-            // Grid lines (for squares)
             if (showGridLines && !useCircles && gridZoom > 0.4) {
                 gridCtx.strokeStyle = 'rgba(0,0,0,0.25)';
                 gridCtx.lineWidth = 1 / gridZoom;
                 gridCtx.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
             }
+        }
+    }
+
+    // Coordinate Labels - OUTSIDE
+    if (showCoords && gridZoom > 0.5) {
+        const textColor = document.body.classList.contains('dark-mode') ? '#ffffff' : '#000000';
+        gridCtx.fillStyle = textColor;
+        gridCtx.font = `bold ${Math.max(12, Math.floor(14 * gridZoom))}px Arial`;
+        gridCtx.textAlign = 'center';
+        gridCtx.textBaseline = 'middle';
+
+        const interval = coordInterval;
+
+        // X labels (Top)
+        for (let x = interval - 1; x < appState.width; x += interval) {
+            const px = paddingLeft + (x * scale + gridOffsetX) * gridZoom + (scale * gridZoom) / 2;
+            gridCtx.fillText((x + 1).toString(), px, 25);
+        }
+
+        // Y labels (Left)
+        gridCtx.textAlign = 'right';
+        for (let y = interval - 1; y < appState.height; y += interval) {
+            const py = paddingTop + (y * scale + gridOffsetY) * gridZoom + (scale * gridZoom) / 2;
+            gridCtx.fillText((y + 1).toString(), 35, py);
         }
     }
 
@@ -198,11 +219,11 @@ window.addEventListener('mousemove', e => {
 gridCanvas.addEventListener('dblclick', resetZoom);
 
 // ====================== CONTROLS ======================
-['pixel-scale', 'show-grid', 'circle-mode'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
+['pixel-scale', 'show-grid', 'circle-mode', 'show-coords', 'coord-interval'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
         if (id === 'pixel-scale') {
-            document.getElementById('scale-value').textContent =
-                document.getElementById('pixel-scale').value + 'px';
+            document.getElementById('scale-value').textContent = el.value + 'px';
         }
         if (appState.imageData) renderPixelGrid();
     });
@@ -214,19 +235,14 @@ document.getElementById('show-hex').addEventListener('change', () => {
 
 document.getElementById('enable-tolerance').addEventListener('change', reprocessImage);
 document.getElementById('tolerance').addEventListener('input', () => {
-    if (document.getElementById('enable-tolerance').checked && appState.imageData) {
-        reprocessImage();
-    }
+    if (document.getElementById('enable-tolerance').checked && appState.imageData) reprocessImage();
 });
 
 function reprocessImage() {
     if (!appState.imageData) return;
     showWait();
-    worker.postMessage({
-        imageData: appState.imageData.data,
-        tolerance: getTolerance()
-    });
-}
+    worker.postMessage({ imageData: appState.imageData.data, tolerance: getTolerance() });
+};
 
 // Preset buttons
 document.querySelectorAll('.presets button').forEach(btn => {
@@ -247,6 +263,7 @@ if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
 }
 darkModeToggle.addEventListener('change', () => {
     document.body.classList.toggle('dark-mode', darkModeToggle.checked);
+    if (appState.imageData) renderPixelGrid(); // refresh for text color
 });
 
 // ====================== COLOR SWATCHES ======================
@@ -259,12 +276,11 @@ function drawColorSwatches(colorCounts) {
         .sort((a, b) => b[1] - a[1])
         .forEach(([color, count]) => {
             const displayColor = formatColor(color, useHex);
-
             const div = document.createElement('div');
             div.className = 'color-swatch-container';
             div.innerHTML = `
                 <div class="color-swatch" style="background:${color}" title="${color}"></div>
-                <span><pre>${displayColor} — ${count}</pre></span>
+                <span>${displayColor} — ${count}</span>
             `;
             container.appendChild(div);
         });
@@ -275,14 +291,13 @@ function drawColorSwatches(colorCounts) {
 // ====================== EXPORTS ======================
 document.getElementById('export-grid-png').addEventListener('click', () => {
     const link = document.createElement('a');
-    link.download = `${appState.originalFileName}-grid.png`;
+    link.download = `${appState.originalFileName || 'pixels'}-grid.png`;
     link.href = gridCanvas.toDataURL('image/png');
     link.click();
 });
 
 document.getElementById('export-csv').addEventListener('click', () => {
     if (!appState.colorCounts) return;
-
     const useHex = document.getElementById('show-hex').checked;
     let csv = "Hex,RGB,Count,Percentage\n";
     const total = appState.width * appState.height;
@@ -299,7 +314,7 @@ document.getElementById('export-csv').addEventListener('click', () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${appState.originalFileName}-color-counts.csv`;
+    a.download = `${appState.originalFileName || 'pixels'}-color-counts.csv`;
     a.click();
     URL.revokeObjectURL(url);
 });
@@ -308,11 +323,13 @@ document.getElementById('export-csv').addEventListener('click', () => {
 document.getElementById('generate-printable').addEventListener('click', () => {
     if (!appState.imageData) return;
 
-    const visualScale = parseInt(document.getElementById('pixel-scale').value);
+    const scale = parseInt(document.getElementById('pixel-scale').value);
     const useCircles = document.getElementById('circle-mode').checked;
     const showGrid = document.getElementById('show-grid').checked;
     const printScale = parseInt(document.getElementById('print-scale').value) || 20;
     const useHex = document.getElementById('show-hex').checked;
+    const showCoords = document.getElementById('show-coords').checked;
+    const coordInterval = parseInt(document.getElementById('coord-interval').value) || 5;
 
     const printWin = window.open('', '_blank');
     const doc = printWin.document;
@@ -325,40 +342,21 @@ document.getElementById('generate-printable').addEventListener('click', () => {
             <meta charset="UTF-8">
             <title>PixelGrid — ${appState.originalFileName}</title>
             <style>
-                body { font-family: Arial, Helvetica, sans-serif; margin: 20px; background: #f8f8f8; }
-                h1 { text-align: center; margin: 20px 0 10px; }
-                .info { text-align: center; margin-bottom: 25px; color: #444; font-size: 1.05em; }
-                canvas { display: block; margin: 0 auto 30px; border: 3px solid #222; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
-                .legend {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                    gap: 12px;
-                    max-width: 1100px;
-                    margin: 30px auto;
-                    padding: 0 10px;
-                }
-                .legend-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    background: white;
-                    padding: 10px 14px;
-                    border-radius: 6px;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-                }
-                .legend-swatch {
-                    width: 38px;
-                    height: 38px;
-                    border: 2px solid #ccc;
-                    flex-shrink: 0;
-                    border-radius: 4px;
+                body { font-family: Arial, Helvetica, sans-serif; margin: 20px; background:#f8f8f8; }
+                h1 { text-align:center; margin:20px 0 10px; }
+                .info { text-align:center; margin-bottom:25px; color:#444; }
+                canvas { display:block; margin:20px auto 30px; border:3px solid #222; box-shadow:0 4px 15px rgba(0,0,0,0.15); }
+                .legend { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; max-width:1100px; margin:30px auto; padding:0 10px; }
+                .legend-item { display:flex; align-items:center; gap:12px; background:white; padding:10px 14px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+                .legend-swatch { 
+                    width:38px; height:38px; border:2px solid #ccc; flex-shrink:0; border-radius:4px; 
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
                 @media print {
-                    body { margin: 15px; background: white; }
-                    canvas { box-shadow: none; border: none; }
-                    .legend-item { box-shadow: none; border: 1px solid #ddd; }
+                    body { margin:15px; background:white; }
+                    canvas { box-shadow:none; border:2px solid #222; }
+                    .legend-item { box-shadow:none; border:1px solid #ddd; }
                     .legend-swatch { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 }
             </style>
@@ -368,7 +366,8 @@ document.getElementById('generate-printable').addEventListener('click', () => {
             <div class="info">
                 Print Scale: ${printScale}px • 
                 ${useCircles ? 'Circular' : 'Square'} pixels • 
-                ${showGrid ? 'With Grid Lines' : 'No Grid Lines'}
+                ${showGrid ? 'With Grid' : 'No Grid'} • 
+                Top-left = (1,1)
             </div>
             <canvas id="print-canvas"></canvas>
             <div class="legend" id="legend"></div>
@@ -389,30 +388,27 @@ document.getElementById('generate-printable').addEventListener('click', () => {
         for (let y = 0; y < appState.height; y++) {
             for (let x = 0; x < appState.width; x++) {
                 const i = (y * appState.width + x) * 4;
-                pCtx.fillStyle = `rgba(${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3] / 255})`;
+                pCtx.fillStyle = `rgba(${data[i]},${data[i+1]},${data[i+2]},${data[i+3]/255})`;
 
                 const px = x * printScale;
                 const py = y * printScale;
                 const size = printScale;
 
                 if (useCircles) {
-                    const centerX = px + size / 2;
-                    const centerY = py + size / 2;
-                    const radius = size * 0.42;
-
+                    const cx = px + size/2;
+                    const cy = py + size/2;
+                    const r = size * 0.42;
                     pCtx.beginPath();
-                    pCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                    pCtx.arc(cx, cy, r, 0, Math.PI * 2);
                     pCtx.fill();
-
-                    // Circle border for print
-                    pCtx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-                    pCtx.lineWidth = Math.max(2, size * 0.06);
+                    pCtx.strokeStyle = 'rgba(0,0,0,0.55)';
+                    pCtx.lineWidth = Math.max(2, size * 0.07);
                     pCtx.stroke();
                 } else {
                     pCtx.fillRect(px, py, size, size);
                 }
 
-                if (showGrid) {
+                if (showGrid && !useCircles) {
                     pCtx.strokeStyle = 'rgba(0,0,0,0.35)';
                     pCtx.lineWidth = 1;
                     pCtx.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
@@ -420,22 +416,40 @@ document.getElementById('generate-printable').addEventListener('click', () => {
             }
         }
 
+        // Print Coordinates - Outside
+        if (showCoords) {
+            pCtx.fillStyle = '#000000';
+            pCtx.font = `bold ${Math.max(12, printScale * 0.6)}px Arial`;
+            pCtx.textAlign = 'center';
+            pCtx.textBaseline = 'middle';
+
+            const interval = coordInterval;
+
+            for (let x = interval - 1; x < appState.width; x += interval) {
+                const px = x * printScale + printScale / 2;
+                pCtx.fillText((x + 1).toString(), px, printScale * 0.35);
+            }
+
+            pCtx.textAlign = 'right';
+            for (let y = interval - 1; y < appState.height; y += interval) {
+                const py = y * printScale + printScale / 2;
+                pCtx.fillText((y + 1).toString(), printScale * 0.75, py);
+            }
+        }
+
         // Legend
         const legendDiv = doc.getElementById('legend');
-        const sortedColors = Object.entries(appState.colorCounts).sort((a, b) => b[1] - a[1]);
-        const totalPixels = appState.width * appState.height;
+        const sorted = Object.entries(appState.colorCounts).sort((a, b) => b[1] - a[1]);
+        const total = appState.width * appState.height;
 
-        sortedColors.forEach(([color, count]) => {
+        sorted.forEach(([color, count]) => {
             const displayColor = formatColor(color, useHex);
-            const percentage = ((count / totalPixels) * 100).toFixed(2);
+            const pct = ((count / total) * 100).toFixed(2);
             const item = doc.createElement('div');
             item.className = 'legend-item';
             item.innerHTML = `
-                <div class="legend-swatch" style="background-color: ${color};"></div>
-                <div>
-                    <strong>${displayColor}</strong><br>
-                    <small>${count.toLocaleString()} pixels (${percentage}%)</small>
-                </div>
+                <div class="legend-swatch" style="background-color: ${color} !important;"></div>
+                <div><strong>${displayColor}</strong><br><small>${count.toLocaleString()} ${count > 1 ? 'pixels' : 'pixel'} (${pct}%)</small></div>
             `;
             legendDiv.appendChild(item);
         });
@@ -459,20 +473,13 @@ function hideWait() {
 // ====================== KEYBOARD SHORTCUTS ======================
 document.addEventListener('keydown', e => {
     if (!appState.imageData) return;
-
     if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
         e.preventDefault();
         document.getElementById('generate-printable').click();
     }
     if (e.key.toLowerCase() === 'r') resetZoom();
-    if (e.key === '+' || e.key === '=') {
-        gridZoom = Math.min(8, gridZoom * 1.2);
-        renderPixelGrid();
-    }
-    if (e.key === '-') {
-        gridZoom = Math.max(0.2, gridZoom / 1.2);
-        renderPixelGrid();
-    }
+    if (e.key === '+' || e.key === '=') { gridZoom = Math.min(8, gridZoom * 1.2); renderPixelGrid(); }
+    if (e.key === '-') { gridZoom = Math.max(0.2, gridZoom / 1.2); renderPixelGrid(); }
 });
 
 // ====================== SAVE / LOAD SETTINGS ======================
@@ -487,6 +494,8 @@ function saveSettings() {
         tolerance: document.getElementById('tolerance').value,
         printScale: document.getElementById('print-scale').value,
         showHex: document.getElementById('show-hex').checked,
+        showCoords: document.getElementById('show-coords').checked,
+        coordInterval: document.getElementById('coord-interval').value,
         darkMode: document.getElementById('dark-mode').checked
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -510,6 +519,8 @@ function loadSettings() {
     document.getElementById('tolerance').value = s.tolerance || 10;
     document.getElementById('print-scale').value = s.printScale || 20;
     document.getElementById('show-hex').checked = s.showHex !== false;
+    document.getElementById('show-coords').checked = s.showCoords !== false;
+    document.getElementById('coord-interval').value = s.coordInterval || 5;
     document.getElementById('dark-mode').checked = s.darkMode || false;
     document.body.classList.toggle('dark-mode', s.darkMode || false);
 }

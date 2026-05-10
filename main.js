@@ -345,7 +345,7 @@ document.getElementById('generate-printable').addEventListener('click', () => {
                 body { font-family: Arial, Helvetica, sans-serif; margin: 20px; background:#f8f8f8; }
                 h1 { text-align:center; margin:20px 0 10px; }
                 .info { text-align:center; margin-bottom:25px; color:#444; }
-                canvas { display:block; margin:20px auto 30px; border:3px solid #222; box-shadow:0 4px 15px rgba(0,0,0,0.15); }
+                canvas { display:block; margin:20px auto 30px; border:none; }
                 .legend { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; max-width:1100px; margin:30px auto; padding:0 10px; }
                 .legend-item { display:flex; align-items:center; gap:12px; background:white; padding:10px 14px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
                 .legend-swatch { 
@@ -355,7 +355,7 @@ document.getElementById('generate-printable').addEventListener('click', () => {
                 }
                 @media print {
                     body { margin:15px; background:white; }
-                    canvas { box-shadow:none; border:2px solid #222; }
+                    canvas { box-shadow:none; border:none; }
                     .legend-item { box-shadow:none; border:1px solid #ddd; }
                     .legend-swatch { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 }
@@ -379,9 +379,20 @@ document.getElementById('generate-printable').addEventListener('click', () => {
     setTimeout(() => {
         const pCanvas = doc.getElementById('print-canvas');
         const pCtx = pCanvas.getContext('2d');
-        pCanvas.width = appState.width * printScale;
-        pCanvas.height = appState.height * printScale;
+        const paddingTop = showCoords ? Math.max(40, printScale * 1.5) : 5;
+        const paddingLeft = showCoords ? Math.max(45, printScale * 2) : 5;
+        pCanvas.width = appState.width * printScale + paddingLeft;
+        pCanvas.height = appState.height * printScale + paddingTop;
         pCtx.imageSmoothingEnabled = false;
+
+        if (showCoords) {
+            const offsetX = paddingLeft / 2;
+            const offsetY = paddingTop / 2;
+            pCanvas.style.transform = `translate(${-offsetX}px, ${-offsetY}px)`;
+            pCanvas.style.transformOrigin = 'center center';
+        } else {
+            pCanvas.style.transform = 'none';
+        }
 
         const data = appState.imageData.data;
 
@@ -390,13 +401,13 @@ document.getElementById('generate-printable').addEventListener('click', () => {
                 const i = (y * appState.width + x) * 4;
                 pCtx.fillStyle = `rgba(${data[i]},${data[i+1]},${data[i+2]},${data[i+3]/255})`;
 
-                const px = x * printScale;
-                const py = y * printScale;
+                const px = paddingLeft + x * printScale;
+                const py = paddingTop + y * printScale;
                 const size = printScale;
 
                 if (useCircles) {
-                    const cx = px + size/2;
-                    const cy = py + size/2;
+                    const cx = px + size / 2;
+                    const cy = py + size / 2;
                     const r = size * 0.42;
                     pCtx.beginPath();
                     pCtx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -424,16 +435,18 @@ document.getElementById('generate-printable').addEventListener('click', () => {
             pCtx.textBaseline = 'middle';
 
             const interval = coordInterval;
+            const labelY = paddingTop / 2;
+            const labelX = paddingLeft / 2;
 
             for (let x = interval - 1; x < appState.width; x += interval) {
-                const px = x * printScale + printScale / 2;
-                pCtx.fillText((x + 1).toString(), px, printScale * 0.35);
+                const px = paddingLeft + x * printScale + printScale / 2;
+                pCtx.fillText((x + 1).toString(), px, labelY);
             }
 
             pCtx.textAlign = 'right';
             for (let y = interval - 1; y < appState.height; y += interval) {
-                const py = y * printScale + printScale / 2;
-                pCtx.fillText((y + 1).toString(), printScale * 0.75, py);
+                const py = paddingTop + y * printScale + printScale / 2;
+                pCtx.fillText((y + 1).toString(), labelX, py);
             }
         }
 

@@ -7,9 +7,36 @@
     <title>PixelGrid - Pixel Art Color Counter & Grid Tool</title>
     <link href="https://fonts.googleapis.com/css?family=Press+Start+2P|Open+Sans" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="pixel-animation.css">
 </head>
 
 <body>
+    <div class="floating-pixel-columns" aria-hidden="true">
+        <div class="pixel-column pixel-column--left">
+            <span class="pixel pixel--small"></span>
+            <span class="pixel pixel--medium"></span>
+            <span class="pixel pixel--large"></span>
+            <span class="pixel pixel--medium"></span>
+            <span class="pixel pixel--small"></span>
+            <span class="pixel pixel--medium"></span>
+            <span class="pixel pixel--large"></span>
+            <span class="pixel pixel--small"></span>
+            <span class="pixel pixel--medium"></span>
+            <span class="pixel pixel--large"></span>
+        </div>
+        <div class="pixel-column pixel-column--right">
+            <span class="pixel pixel--medium"></span>
+            <span class="pixel pixel--small"></span>
+            <span class="pixel pixel--large"></span>
+            <span class="pixel pixel--medium"></span>
+            <span class="pixel pixel--small"></span>
+            <span class="pixel pixel--large"></span>
+            <span class="pixel pixel--small"></span>
+            <span class="pixel pixel--medium"></span>
+            <span class="pixel pixel--large"></span>
+            <span class="pixel pixel--medium"></span>
+        </div>
+    </div>
     <header>
         <h1>PixelGrid</h1>
         <p class="tagline">Turn any image into a precise pixel build map</p>
@@ -47,7 +74,12 @@
                     <input type="number" id="tolerance" value="10" min="0" max="50" style="width:60px;">
                 </label>
 
-                <div class="zoom-info">Zoom: <span id="zoom-level">100%</span></div>
+                <label class="zoom-control">Zoom:
+                    <button type="button" id="zoom-out">-</button>
+                    <input type="range" id="zoom-slider" min="20" max="400" value="100">
+                    <button type="button" id="zoom-in">+</button>
+                    <span id="zoom-level">100%</span>
+                </label>
                 <label><input type="checkbox" id="dark-mode"> Dark Mode</label>
 
                 <label>Print Scale:
@@ -59,6 +91,9 @@
                 <label><input type="checkbox" id="show-coords" checked> Show Coordinates</label>
                 <label>Interval: 
                     <input type="number" id="coord-interval" value="5" min="1" max="20" style="width:70px;">
+                </label>
+                <label title="Add letter labels to pixels for distinguishing similar colors or B&W printing">
+                    <input type="checkbox" id="show-color-labels"> Show Color Labels
                 </label>
             </div>
 

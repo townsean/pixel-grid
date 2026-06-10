@@ -6,6 +6,7 @@ let appState = {
     width: 0,
     height: 0,
     colorCounts: null,
+    colorLabels: null,
     originalFileName: ''
 };
 
@@ -20,6 +21,53 @@ let lastMouseY = 0;
 const gridCanvas = document.getElementById('pixel-grid-canvas');
 const gridCtx = gridCanvas.getContext('2d');
 
+const floatingPixelPalette = ['#f6eddb', '#f4d89e', '#c18753', '#f9f2e4', '#deb67f', '#d1ad7a', '#f4efe2', '#efe0b8', '#b3824c', '#f5f0df', '#e0c591', '#c79b67'];
+
+function initFloatingPixels() {
+    const leftColumn = document.querySelector('.pixel-column--left');
+    const rightColumn = document.querySelector('.pixel-column--right');
+    if (!leftColumn || !rightColumn) return;
+
+    const sizes = ['small', 'medium', 'large', 'small', 'medium', 'large', 'small', 'medium', 'large', 'small', 'medium', 'large', 'small', 'medium', 'large', 'small', 'medium', 'large', 'small', 'medium', 'large', 'small', 'medium', 'large', 'small', 'medium'];
+    [leftColumn, rightColumn].forEach((column, columnIndex) => {
+        column.innerHTML = '';
+        sizes.forEach((size, index) => {
+            const pixel = document.createElement('span');
+            const color = floatingPixelPalette[(columnIndex * sizes.length + index) % floatingPixelPalette.length];
+            const left = 6 + Math.random() * 88;
+            const duration = 12 + Math.random() * 10;
+            const delay = -(Math.random() * duration * 1.75);
+            pixel.className = `pixel pixel--${size}`;
+            pixel.style.left = `${left}%`;
+            pixel.style.animationDuration = `${duration}s`;
+            pixel.style.animationDelay = `${delay}s`;
+            pixel.style.background = color;
+            column.appendChild(pixel);
+        });
+    });
+}
+
+function applyFloatingPixelColors(colorCounts) {
+    const pixels = Array.from(document.querySelectorAll('.floating-pixel-columns .pixel'));
+    if (!pixels.length || !colorCounts) return;
+
+    const topColors = Object.entries(colorCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([color]) => color);
+
+    if (!topColors.length) return;
+
+    pixels.forEach((pixel, index) => {
+        pixel.style.background = topColors[index % topColors.length];
+    });
+}
+
+// Update canvas when the window resizes
+window.addEventListener('resize', () => {
+    if (appState.imageData) renderPixelGrid();
+});
+
 // ====================== COLOR FORMAT HELPERS ======================
 function rgbToHex(r, g, b) {
     return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
@@ -33,11 +81,44 @@ function formatColor(colorStr, useHex) {
     return rgbToHex(r, g, b);
 }
 
+// ====================== COLOR LABEL MAPPING ======================
+function generateColorLabels(colorCounts) {
+    const labels = {};
+    const sortedColors = Object.entries(colorCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([color]) => color);
+    
+    sortedColors.forEach((color, index) => {
+        labels[color] = String.fromCharCode(65 + (index % 26)); // A-Z then repeat
+    });
+    
+    return labels;
+}
+
+function buildRGBALookup(colorCounts) {
+    const lookup = {};
+    Object.keys(colorCounts).forEach(color => {
+        const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+        if (match) {
+            const r = parseInt(match[1]);
+            const g = parseInt(match[2]);
+            const b = parseInt(match[3]);
+            const a = match[4] ? Math.round(parseFloat(match[4]) * 255) : 255;
+            const key = `${r},${g},${b},${a}`;
+            lookup[key] = color;
+        }
+    });
+    return lookup;
+}
+
 // ====================== WORKER ======================
 worker.addEventListener("message", (e) => {
     if (e.data.command === "done") {
         appState.colorCounts = e.data.colorCounts;
+        appState.colorLabels = generateColorLabels(e.data.colorCounts);
         drawColorSwatches(e.data.colorCounts);
+        applyFloatingPixelColors(e.data.colorCounts);
+        document.getElementById('pixel-grid-canvas').classList.add('expanded');
         resetZoom();
         renderPixelGrid();
 
@@ -46,6 +127,22 @@ worker.addEventListener("message", (e) => {
         hideWait();
     }
 });
+
+function applyFloatingPixelColors(colorCounts) {
+    const pixels = Array.from(document.querySelectorAll('.floating-pixel-columns .pixel'));
+    if (!pixels.length || !colorCounts) return;
+
+    const topColors = Object.entries(colorCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([color]) => color);
+
+    if (!topColors.length) return;
+
+    pixels.forEach((pixel, index) => {
+        pixel.style.background = topColors[index % topColors.length];
+    });
+}
 
 // ====================== IMAGE UPLOAD ======================
 document.getElementById("image").addEventListener('change', e => {
@@ -86,27 +183,35 @@ function getTolerance() {
 
 // ====================== RENDERING ======================
 function renderPixelGrid() {
+    if (!appState.imageData) return;
+    
     const scale = parseInt(document.getElementById('pixel-scale').value);
     const useCircles = document.getElementById('circle-mode').checked;
     const showGridLines = document.getElementById('show-grid').checked;
     const showCoords = document.getElementById('show-coords').checked;
     const coordInterval = parseInt(document.getElementById('coord-interval').value) || 5;
+    const showColorLabels = document.getElementById('show-color-labels').checked;
 
-    const paddingTop = showCoords ? 40 : 5;
-    const paddingLeft = showCoords ? 45 : 5;
+    const size = scale * gridZoom;
+    const paddingTop = showCoords ? Math.max(40, size * 1.5) : 5;
+    const paddingLeft = showCoords ? Math.max(45, size * 2) : 5;
+    const paddingRight = 5;
+    const paddingBottom = 5;
 
-    const baseWidth = appState.width * scale;
-    const baseHeight = appState.height * scale;
+    const gridWidth = appState.width * size;
+    const gridHeight = appState.height * size;
 
-    gridCanvas.width = baseWidth * gridZoom + paddingLeft;
-    gridCanvas.height = baseHeight * gridZoom + paddingTop;
+    gridCanvas.width = Math.round(gridWidth + paddingLeft + paddingRight);
+    gridCanvas.height = Math.round(gridHeight + paddingTop + paddingBottom);
+    gridCanvas.style.width = `${gridCanvas.width}px`;
+    gridCanvas.style.height = `${gridCanvas.height}px`;
 
     gridCtx.imageSmoothingEnabled = false;
-    gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
-
-    // Background match page
     gridCtx.fillStyle = document.body.classList.contains('dark-mode') ? '#1e1e1e' : '#f8f8f8';
     gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
+
+    const baseX = paddingLeft + gridOffsetX;
+    const baseY = paddingTop + gridOffsetY;
 
     const data = appState.imageData.data;
 
@@ -116,28 +221,28 @@ function renderPixelGrid() {
             const i = (y * appState.width + x) * 4;
             gridCtx.fillStyle = `rgba(${data[i]},${data[i+1]},${data[i+2]},${data[i+3]/255})`;
 
-            const px = paddingLeft + (x * scale + gridOffsetX) * gridZoom;
-            const py = paddingTop + (y * scale + gridOffsetY) * gridZoom;
-            const size = scale * gridZoom;
+            const px = baseX + x * size;
+            const py = baseY + y * size;
+            const tileSize = size;
 
             if (useCircles) {
-                const cx = px + size / 2;
-                const cy = py + size / 2;
-                const r = size * 0.42;
+                const cx = px + tileSize / 2;
+                const cy = py + tileSize / 2;
+                const r = tileSize * 0.42;
                 gridCtx.beginPath();
                 gridCtx.arc(cx, cy, r, 0, Math.PI * 2);
                 gridCtx.fill();
                 gridCtx.strokeStyle = 'rgba(0,0,0,0.5)';
-                gridCtx.lineWidth = Math.max(1.5, size * 0.08);
+                gridCtx.lineWidth = Math.max(1.5, tileSize * 0.08);
                 gridCtx.stroke();
             } else {
-                gridCtx.fillRect(px, py, size, size);
+                gridCtx.fillRect(px, py, tileSize, tileSize);
             }
 
-            if (showGridLines && !useCircles && gridZoom > 0.4) {
+            if (showGridLines && !useCircles) {
                 gridCtx.strokeStyle = 'rgba(0,0,0,0.25)';
-                gridCtx.lineWidth = 1 / gridZoom;
-                gridCtx.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
+                gridCtx.lineWidth = 0.5 / gridZoom;
+                gridCtx.strokeRect(px + 0.5, py + 0.5, tileSize - 1, tileSize - 1);
             }
         }
     }
@@ -154,44 +259,100 @@ function renderPixelGrid() {
 
         // X labels (Top)
         for (let x = interval - 1; x < appState.width; x += interval) {
-            const px = paddingLeft + (x * scale + gridOffsetX) * gridZoom + (scale * gridZoom) / 2;
-            gridCtx.fillText((x + 1).toString(), px, 25);
+            const px = baseX + x * size + size / 2;
+            gridCtx.fillText((x + 1).toString(), px, baseY - 20);
         }
 
         // Y labels (Left)
         gridCtx.textAlign = 'right';
         for (let y = interval - 1; y < appState.height; y += interval) {
-            const py = paddingTop + (y * scale + gridOffsetY) * gridZoom + (scale * gridZoom) / 2;
-            gridCtx.fillText((y + 1).toString(), 35, py);
+            const py = baseY + y * size + size / 2;
+            gridCtx.fillText((y + 1).toString(), baseX - 10, py);
         }
     }
+
+    // Color Labels - ON GRID
+    if (showColorLabels && gridZoom > 0.3 && appState.colorLabels) {
+        const fontSize = Math.max(10, Math.floor(11 * gridZoom));
+        const isDark = document.body.classList.contains('dark-mode');
+        const rgbaLookup = buildRGBALookup(appState.colorCounts);
+        
+        gridCtx.font = `bold ${fontSize}px Arial`;
+        gridCtx.textAlign = 'center';
+        gridCtx.textBaseline = 'middle';
+
+        for (let y = 0; y < appState.height; y++) {
+            for (let x = 0; x < appState.width; x++) {
+                const i = (y * appState.width + x) * 4;
+                const r = appState.imageData.data[i];
+                const g = appState.imageData.data[i + 1];
+                const b = appState.imageData.data[i + 2];
+                const a = appState.imageData.data[i + 3];
+                const rgbaKey = `${r},${g},${b},${a}`;
+                const colorStr = rgbaLookup[rgbaKey];
+                const label = colorStr ? appState.colorLabels[colorStr] : null;
+                
+                if (label) {
+                    const px = baseX + x * size + size / 2;
+                    const py = baseY + y * size + size / 2;
+                    
+                    // White text with dark outline for contrast
+                    gridCtx.fillStyle = 'white';
+                    gridCtx.strokeStyle = isDark ? 'white' : 'black';
+                    gridCtx.lineWidth = Math.max(1, 1.5 / gridZoom);
+                    gridCtx.strokeText(label, px, py);
+                    gridCtx.fillStyle = isDark ? 'black' : 'white';
+                    gridCtx.fillText(label, px, py);
+                }
+            }
+        }
+    }
+
+    // Restore context state
+    gridCtx.restore();
 
     document.getElementById('zoom-level').textContent = Math.round(gridZoom * 100) + '%';
 }
 
 function resetZoom() {
-    gridZoom = 1;
     gridOffsetX = 0;
     gridOffsetY = 0;
-    renderPixelGrid();
+    setZoomFromPercent(100);
 }
 
 // ====================== ZOOM & PAN ======================
-gridCanvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    const rect = gridCanvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+const zoomSlider = document.getElementById('zoom-slider');
+const zoomInBtn = document.getElementById('zoom-in');
+const zoomOutBtn = document.getElementById('zoom-out');
 
-    const factor = e.deltaY < 0 ? 1.15 : 0.85;
-    const newZoom = Math.max(0.2, Math.min(8, gridZoom * factor));
+function updateZoomUI() {
+    document.getElementById('zoom-level').textContent = Math.round(gridZoom * 100) + '%';
+    if (zoomSlider) zoomSlider.value = Math.round(gridZoom * 100);
+}
 
-    gridOffsetX = mouseX - (mouseX - gridOffsetX) * (newZoom / gridZoom);
-    gridOffsetY = mouseY - (mouseY - gridOffsetY) * (newZoom / gridZoom);
+function setZoomFromPercent(percent) {
+    gridZoom = Math.max(0.2, Math.min(8, percent / 100));
+    updateZoomUI();
+    if (appState.imageData) renderPixelGrid();
+}
 
-    gridZoom = newZoom;
-    renderPixelGrid();
-});
+function adjustZoom(delta) {
+    setZoomFromPercent(gridZoom * 100 + delta);
+}
+
+if (zoomSlider) {
+    zoomSlider.addEventListener('input', () => {
+        setZoomFromPercent(parseInt(zoomSlider.value, 10));
+    });
+}
+
+if (zoomInBtn) {
+    zoomInBtn.addEventListener('click', () => adjustZoom(10));
+}
+
+if (zoomOutBtn) {
+    zoomOutBtn.addEventListener('click', () => adjustZoom(-10));
+}
 
 gridCanvas.addEventListener('mousedown', e => {
     isDragging = true;
@@ -209,8 +370,8 @@ window.addEventListener('mousemove', e => {
     if (!isDragging) return;
     const dx = (e.clientX - lastMouseX) / gridZoom;
     const dy = (e.clientY - lastMouseY) / gridZoom;
-    gridOffsetX += dx;
-    gridOffsetY += dy;
+    gridOffsetX -= dx;
+    gridOffsetY -= dy;
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
     renderPixelGrid();
@@ -219,8 +380,9 @@ window.addEventListener('mousemove', e => {
 gridCanvas.addEventListener('dblclick', resetZoom);
 
 // ====================== CONTROLS ======================
-['pixel-scale', 'show-grid', 'circle-mode', 'show-coords', 'coord-interval'].forEach(id => {
+['pixel-scale', 'show-grid', 'circle-mode', 'show-coords', 'coord-interval', 'show-color-labels'].forEach(id => {
     const el = document.getElementById(id);
+    if (!el) return;
     el.addEventListener('input', () => {
         if (id === 'pixel-scale') {
             document.getElementById('scale-value').textContent = el.value + 'px';
@@ -271,19 +433,22 @@ function drawColorSwatches(colorCounts) {
     const container = document.getElementById('color-swatches');
     container.innerHTML = '';
     const useHex = document.getElementById('show-hex').checked;
+    const showColorLabels = document.getElementById('show-color-labels').checked;
 
-    Object.entries(colorCounts)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([color, count]) => {
-            const displayColor = formatColor(color, useHex);
-            const div = document.createElement('div');
-            div.className = 'color-swatch-container';
-            div.innerHTML = `
-                <div class="color-swatch" style="background:${color}" title="${color}"></div>
-                <span>${displayColor} — ${count}</span>
-            `;
-            container.appendChild(div);
-        });
+    const sorted = Object.entries(colorCounts)
+        .sort((a, b) => b[1] - a[1]);
+
+    sorted.forEach(([color, count], index) => {
+        const displayColor = formatColor(color, useHex);
+        const label = showColorLabels && appState.colorLabels ? appState.colorLabels[color] : '';
+        const div = document.createElement('div');
+        div.className = 'color-swatch-container';
+        div.innerHTML = `
+            <div class="color-swatch" style="background:${color}" title="${color}"></div>
+            <span>${label ? '[' + label + '] ' : ''}${displayColor} — ${count}</span>
+        `;
+        container.appendChild(div);
+    });
 
     document.getElementById('color-count').textContent = Object.keys(colorCounts).length;
 }
@@ -330,6 +495,7 @@ document.getElementById('generate-printable').addEventListener('click', () => {
     const useHex = document.getElementById('show-hex').checked;
     const showCoords = document.getElementById('show-coords').checked;
     const coordInterval = parseInt(document.getElementById('coord-interval').value) || 5;
+    const showColorLabels = document.getElementById('show-color-labels').checked;
 
     const printWin = window.open('', '_blank');
     const doc = printWin.document;
@@ -450,6 +616,41 @@ document.getElementById('generate-printable').addEventListener('click', () => {
             }
         }
 
+        // Color Labels - ON GRID
+        if (showColorLabels && appState.colorLabels) {
+            const fontSize = Math.max(10, printScale * 0.5);
+            const rgbaLookup = buildRGBALookup(appState.colorCounts);
+            pCtx.fillStyle = 'white';
+            pCtx.font = `bold ${fontSize}px Arial`;
+            pCtx.textAlign = 'center';
+            pCtx.textBaseline = 'middle';
+
+            for (let y = 0; y < appState.height; y++) {
+                for (let x = 0; x < appState.width; x++) {
+                    const i = (y * appState.width + x) * 4;
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const a = data[i + 3];
+                    const rgbaKey = `${r},${g},${b},${a}`;
+                    const colorStr = rgbaLookup[rgbaKey];
+                    const label = colorStr ? appState.colorLabels[colorStr] : null;
+                    
+                    if (label) {
+                        const px = paddingLeft + x * printScale + printScale / 2;
+                        const py = paddingTop + y * printScale + printScale / 2;
+                        
+                        // White text with black outline for contrast
+                        pCtx.strokeStyle = 'black';
+                        pCtx.lineWidth = Math.max(1, fontSize * 0.15);
+                        pCtx.strokeText(label, px, py);
+                        pCtx.fillStyle = 'white';
+                        pCtx.fillText(label, px, py);
+                    }
+                }
+            }
+        }
+
         // Legend
         const legendDiv = doc.getElementById('legend');
         const sorted = Object.entries(appState.colorCounts).sort((a, b) => b[1] - a[1]);
@@ -458,11 +659,12 @@ document.getElementById('generate-printable').addEventListener('click', () => {
         sorted.forEach(([color, count]) => {
             const displayColor = formatColor(color, useHex);
             const pct = ((count / total) * 100).toFixed(2);
+            const label = showColorLabels && appState.colorLabels ? appState.colorLabels[color] : '';
             const item = doc.createElement('div');
             item.className = 'legend-item';
             item.innerHTML = `
                 <div class="legend-swatch" style="background-color: ${color} !important;"></div>
-                <div><strong>${displayColor}</strong><br><small>${count.toLocaleString()} ${count > 1 ? 'pixels' : 'pixel'} (${pct}%)</small></div>
+                <div><strong>${label ? '[' + label + '] ' : ''}${displayColor}</strong><br><small>${count.toLocaleString()} ${count > 1 ? 'pixels' : 'pixel'} (${pct}%)</small></div>
             `;
             legendDiv.appendChild(item);
         });
@@ -473,6 +675,7 @@ document.getElementById('generate-printable').addEventListener('click', () => {
 function resetUI() {
     document.getElementById('visualization-section').classList.add('invisible');
     document.getElementById('pixel-count-container').classList.add('invisible');
+    document.getElementById('pixel-grid-canvas').classList.remove('expanded');
 }
 
 function showWait() {
@@ -541,4 +744,14 @@ function loadSettings() {
 document.getElementById('save-settings').addEventListener('click', saveSettings);
 document.getElementById('load-settings').addEventListener('click', loadSettings);
 
-window.addEventListener('load', loadSettings);
+window.addEventListener('load', () => {
+    loadSettings();
+    initFloatingPixels();
+    // Initialize canvas dimensions
+    const initialWidth = 800;
+    const initialHeight = 600;
+    gridCanvas.width = initialWidth;
+    gridCanvas.height = initialHeight;
+    gridCanvas.style.width = `${initialWidth}px`;
+    gridCanvas.style.height = `${initialHeight}px`;
+});

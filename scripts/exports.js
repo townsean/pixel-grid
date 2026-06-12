@@ -38,6 +38,7 @@ export function generatePrintable(appState) {
   const printScale = parseInt(document.getElementById('print-scale').value) || 20;
   const useHex = document.getElementById('show-hex').checked;
   const showCoords = document.getElementById('show-coords').checked;
+  const showCoordsExtra = document.getElementById('show-coords-extra')?.checked || false;
   const coordInterval = parseInt(document.getElementById('coord-interval').value) || 5;
   const showColorLabels = document.getElementById('show-color-labels').checked;
 
@@ -91,8 +92,10 @@ export function generatePrintable(appState) {
     const pCtx = pCanvas.getContext('2d');
     const paddingTop = showCoords ? Math.max(40, printScale * 1.5) : 5;
     const paddingLeft = showCoords ? Math.max(45, printScale * 2) : 5;
-    pCanvas.width = appState.width * printScale + paddingLeft;
-    pCanvas.height = appState.height * printScale + paddingTop;
+    const paddingRight = showCoordsExtra ? Math.max(45, printScale * 2) : 5;
+    const paddingBottom = showCoordsExtra ? Math.max(40, printScale * 1.5) : 5;
+    pCanvas.width = appState.width * printScale + paddingLeft + paddingRight;
+    pCanvas.height = appState.height * printScale + paddingTop + paddingBottom;
     pCtx.imageSmoothingEnabled = false;
 
     if (showCoords) {
@@ -137,22 +140,47 @@ export function generatePrintable(appState) {
       }
     }
 
-    // Print Coordinates - Outside
+    // Print Coordinates - Top/Left
     if (showCoords) {
       pCtx.fillStyle = '#000000';
       pCtx.font = `bold ${Math.max(12, printScale * 0.6)}px Arial`;
       pCtx.textAlign = 'center';
       pCtx.textBaseline = 'middle';
 
+      // Top labels
       for (let x = coordInterval - 1; x < appState.width; x += coordInterval) {
         const px = paddingLeft + x * printScale + printScale / 2;
         pCtx.fillText((x + 1).toString(), px, paddingTop / 2);
       }
 
+      // Left labels
       pCtx.textAlign = 'right';
       for (let y = coordInterval - 1; y < appState.height; y += coordInterval) {
         const py = paddingTop + y * printScale + printScale / 2;
         pCtx.fillText((y + 1).toString(), paddingLeft / 2, py);
+      }
+    }
+
+    // Print Coordinates - Bottom/Right (independent)
+    if (showCoordsExtra) {
+      pCtx.fillStyle = '#000000';
+      pCtx.font = `bold ${Math.max(12, printScale * 0.6)}px Arial`;
+      pCtx.textAlign = 'center';
+      pCtx.textBaseline = 'middle';
+
+      // Bottom labels
+      const bottomY = paddingTop + appState.height * printScale + (paddingBottom / 2);
+      for (let x = coordInterval - 1; x < appState.width; x += coordInterval) {
+        const px = paddingLeft + x * printScale + printScale / 2;
+        pCtx.fillText((x + 1).toString(), px, bottomY);
+      }
+
+      // Right labels
+      pCtx.textAlign = 'left';
+      const rightX = paddingLeft + appState.width * printScale + (paddingRight / 2);
+      for (let y = coordInterval - 1; y < appState.height; y += coordInterval) {
+        const py = paddingTop + y * printScale + printScale / 2;
+        pCtx.fillText((y + 1).toString(), rightX, py);
       }
     }
 

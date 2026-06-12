@@ -11,14 +11,15 @@ export function renderPixelGrid(appState, gridCanvas, gridCtx, opts = {}) {
     const useCircles = document.getElementById('circle-mode').checked;
     const showGridLines = document.getElementById('show-grid').checked;
     const showCoords = document.getElementById('show-coords').checked;
+    const showCoordsExtra = document.getElementById('show-coords-extra')?.checked || false;
     const coordInterval = parseInt(document.getElementById('coord-interval').value) || 5;
     const showColorLabels = document.getElementById('show-color-labels').checked;
 
     const size = scale * gridZoom;
     const paddingTop = showCoords ? Math.max(40, size * 1.5) : 5;
     const paddingLeft = showCoords ? Math.max(45, size * 2) : 5;
-    const paddingRight = 5;
-    const paddingBottom = 5;
+    const paddingRight = showCoordsExtra ? Math.max(45, size * 2) : 5;
+    const paddingBottom = showCoordsExtra ? Math.max(40, size * 1.5) : 5;
 
     const gridWidth = appState.width * size;
     const gridHeight = appState.height * size;
@@ -68,7 +69,10 @@ export function renderPixelGrid(appState, gridCanvas, gridCtx, opts = {}) {
         }
     }
 
-    // Coordinate Labels - OUTSIDE
+    // Coordinate label interval
+    const interval = coordInterval;
+
+    // Top and Left coordinate labels
     if (showCoords && gridZoom > 0.5) {
         const textColor = document.body.classList.contains('dark-mode') ? '#ffffff' : '#000000';
         gridCtx.fillStyle = textColor;
@@ -76,17 +80,39 @@ export function renderPixelGrid(appState, gridCanvas, gridCtx, opts = {}) {
         gridCtx.textAlign = 'center';
         gridCtx.textBaseline = 'middle';
 
-        const interval = coordInterval;
-
+        // Top labels
         for (let x = interval - 1; x < appState.width; x += interval) {
             const px = baseX + x * size + size / 2;
             gridCtx.fillText((x + 1).toString(), px, baseY - 20);
         }
 
+        // Left labels
         gridCtx.textAlign = 'right';
         for (let y = interval - 1; y < appState.height; y += interval) {
             const py = baseY + y * size + size / 2;
             gridCtx.fillText((y + 1).toString(), baseX - 10, py);
+        }
+    }
+
+    // Bottom and Right coordinate labels (independent)
+    if (showCoordsExtra && gridZoom > 0.5) {
+        const textColor = document.body.classList.contains('dark-mode') ? '#ffffff' : '#000000';
+        gridCtx.fillStyle = textColor;
+        gridCtx.font = `bold ${Math.max(12, Math.floor(14 * gridZoom))}px Arial`;
+        gridCtx.textBaseline = 'middle';
+
+        // Bottom labels (centered under each column)
+        gridCtx.textAlign = 'center';
+        for (let x = interval - 1; x < appState.width; x += interval) {
+            const px = baseX + x * size + size / 2;
+            gridCtx.fillText((x + 1).toString(), px, baseY + gridHeight + 20);
+        }
+
+        // Right labels (to the right of each row)
+        gridCtx.textAlign = 'left';
+        for (let y = interval - 1; y < appState.height; y += interval) {
+            const py = baseY + y * size + size / 2;
+            gridCtx.fillText((y + 1).toString(), baseX + gridWidth + 10, py);
         }
     }
 

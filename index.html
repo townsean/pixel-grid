@@ -88,7 +88,11 @@
                 <label>
                     <input type="checkbox" id="show-hex" checked> Show Hex
                 </label>
-                <label><input type="checkbox" id="show-coords" checked> Show Coordinates</label>
+                <label><input type="checkbox" id="show-coords" checked> Show Coordinates (top/left)</label>
+
+                <label title="Also show coordinates on the bottom and right edges of the image">
+                    <input type="checkbox" id="show-coords-extra"> Show Coordinates (bottom/right)
+                </label>
                 <label>Interval: 
                     <input type="number" id="coord-interval" value="5" min="1" max="20" style="width:70px;">
                 </label>
@@ -97,7 +101,9 @@
                 </label>
             </div>
 
-            <canvas id="pixel-grid-canvas"></canvas>
+            <div class="canvas-wrapper">
+                <canvas id="pixel-grid-canvas"></canvas>
+            </div>
 
             <div class="export-buttons">
                 <button id="export-grid-png">Export Grid PNG</button>

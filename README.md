@@ -35,6 +35,11 @@ That has goal has been fullfilled with PixelGrid.
 5. Adjust settings and explore the grid
 6. Export or print your build map
 
+## Settings
+
+- **Tolerance:** When enabled, nearby colors are grouped using a numeric tolerance threshold. This reduces noise from anti-aliasing or compression artifacts so the color legend and counts are more compact and useful for crafting or building. Typical values: `5–15` (mild), `16–40` (moderate), `>40` (aggressive — may merge distinct colors).
+
+
 ## Built With
 
 - JavaScript

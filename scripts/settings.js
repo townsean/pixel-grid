@@ -13,6 +13,7 @@ export function saveSettings() {
     printScale: document.getElementById('print-scale').value,
     showHex: document.getElementById('show-hex').checked,
     showCoords: document.getElementById('show-coords').checked,
+    showCoordsExtra: document.getElementById('show-coords-extra').checked,
     coordInterval: document.getElementById('coord-interval').value,
     darkMode: document.getElementById('dark-mode').checked
   };
@@ -38,6 +39,7 @@ export function loadSettings() {
   document.getElementById('print-scale').value = s.printScale || 20;
   document.getElementById('show-hex').checked = s.showHex !== false;
   document.getElementById('show-coords').checked = s.showCoords !== false;
+  document.getElementById('show-coords-extra').checked = s.showCoordsExtra || false;
   document.getElementById('coord-interval').value = s.coordInterval || 5;
   document.getElementById('dark-mode').checked = s.darkMode || false;
   document.body.classList.toggle('dark-mode', s.darkMode || false);

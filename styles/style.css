@@ -118,6 +118,23 @@ main {
     cursor: grab;
 }
 
+.canvas-wrapper {
+    width: 100%;
+    max-width: 1100px;
+    max-height: calc(70vh - 140px);
+    margin: 10px auto;
+    overflow: auto;
+    background: transparent;
+    border-radius: 6px;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure canvas can be larger than the wrapper and be scrollable */
+.canvas-wrapper #pixel-grid-canvas {
+    display: block;
+    margin: 0 auto;
+}
+
 #pixel-grid-canvas.expanded {
     max-width: none;
     max-height: none;

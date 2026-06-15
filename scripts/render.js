@@ -1,4 +1,5 @@
 import { buildRGBALookup } from './colors.js';
+import { computePadding, drawMajorGridLines } from './utils.js';
 
 export function renderPixelGrid(appState, gridCanvas, gridCtx, opts = {}) {
     if (!appState || !appState.imageData) return;
@@ -16,10 +17,7 @@ export function renderPixelGrid(appState, gridCanvas, gridCtx, opts = {}) {
     const showColorLabels = document.getElementById('show-color-labels').checked;
 
     const size = scale * gridZoom;
-    const paddingTop = showCoords ? Math.max(40, size * 1.5) : 5;
-    const paddingLeft = showCoords ? Math.max(45, size * 2) : 5;
-    const paddingRight = showCoordsExtra ? Math.max(45, size * 2) : 5;
-    const paddingBottom = showCoordsExtra ? Math.max(40, size * 1.5) : 5;
+    const { paddingTop, paddingLeft, paddingRight, paddingBottom } = computePadding({ showCoords, showCoordsExtra, size });
 
     const gridWidth = appState.width * size;
     const gridHeight = appState.height * size;
@@ -71,6 +69,12 @@ export function renderPixelGrid(appState, gridCanvas, gridCtx, opts = {}) {
 
     // Coordinate label interval
     const interval = coordInterval;
+
+    // Major interval grid lines (darker) — show when `show-major-lines` enabled regardless of regular grid lines
+    const showMajorLines = document.getElementById('show-major-lines')?.checked !== false;
+    if (showMajorLines && coordInterval > 1) {
+        drawMajorGridLines(gridCtx, baseX, baseY, appState.width, appState.height, size, coordInterval, { isDark: document.body.classList.contains('dark-mode'), lineWidth: Math.max(1, 1.5 / gridZoom) });
+    }
 
     // Top and Left coordinate labels
     if (showCoords && gridZoom > 0.5) {

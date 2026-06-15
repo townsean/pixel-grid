@@ -12,6 +12,7 @@ export function saveSettings() {
     tolerance: document.getElementById('tolerance').value,
     printScale: document.getElementById('print-scale').value,
     showHex: document.getElementById('show-hex').checked,
+    showMajorLines: document.getElementById('show-major-lines')?.checked || false,
     showCoords: document.getElementById('show-coords').checked,
     showCoordsExtra: document.getElementById('show-coords-extra').checked,
     coordInterval: document.getElementById('coord-interval').value,
@@ -38,6 +39,7 @@ export function loadSettings() {
   document.getElementById('tolerance').value = s.tolerance || 10;
   document.getElementById('print-scale').value = s.printScale || 20;
   document.getElementById('show-hex').checked = s.showHex !== false;
+  document.getElementById('show-major-lines').checked = s.showMajorLines !== false;
   document.getElementById('show-coords').checked = s.showCoords !== false;
   document.getElementById('show-coords-extra').checked = s.showCoordsExtra || false;
   document.getElementById('coord-interval').value = s.coordInterval || 5;

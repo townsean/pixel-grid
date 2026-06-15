@@ -156,7 +156,7 @@ window.addEventListener('mousemove', e => {
 gridCanvas.addEventListener('dblclick', resetZoom);
 
 // ====================== CONTROLS ======================
-['pixel-scale', 'show-grid', 'circle-mode', 'show-coords', 'show-coords-extra', 'coord-interval', 'show-color-labels'].forEach(id => {
+['pixel-scale', 'show-grid', 'show-major-lines', 'circle-mode', 'show-coords', 'show-coords-extra', 'coord-interval', 'show-color-labels'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', () => {
@@ -227,6 +227,11 @@ function drawColorSwatches(colorCounts) {
     });
 
     document.getElementById('color-count').textContent = Object.keys(colorCounts).length;
+    // Show total pixel count (width * height)
+    const totalPixelsEl = document.getElementById('total-pixels');
+    if (totalPixelsEl) {
+        totalPixelsEl.textContent = (appState.width * appState.height).toLocaleString();
+    }
 }
 
 // ====================== EXPORTS ==================

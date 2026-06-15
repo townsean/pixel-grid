@@ -1,4 +1,5 @@
 import { formatColor, buildRGBALookup } from './colors.js';
+import { drawMajorGridLines } from './utils.js';
 
 export function exportGridPNG(gridCanvas, filename = 'pixels-grid.png') {
   const link = document.createElement('a');
@@ -45,6 +46,10 @@ export function generatePrintable(appState) {
   const printWin = window.open('', '_blank');
   const doc = printWin.document;
 
+  const uniqueColors = appState.colorCounts ? Object.keys(appState.colorCounts).length : 0;
+  const totalPixels = appState.width * appState.height;
+  const totalPixelsStr = totalPixels.toLocaleString();
+
   doc.open();
   doc.write(`
         <!DOCTYPE html>
@@ -75,10 +80,7 @@ export function generatePrintable(appState) {
         <body>
             <h1>PixelGrid — ${appState.originalFileName}</h1>
             <div class="info">
-                Print Scale: ${printScale}px • 
-                ${useCircles ? 'Circular' : 'Square'} pixels • 
-                ${showGrid ? 'With Grid' : 'No Grid'} • 
-                Top-left = (1,1)
+              ${totalPixelsStr} total pixels • ${uniqueColors} unique colors
             </div>
             <canvas id="print-canvas"></canvas>
             <div class="legend" id="legend"></div>
@@ -138,6 +140,12 @@ export function generatePrintable(appState) {
           pCtx.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
         }
       }
+    }
+
+    // Major interval grid lines for printable output (respect setting)
+    const showMajorLines = document.getElementById('show-major-lines')?.checked !== false;
+    if (showMajorLines && coordInterval > 1) {
+      drawMajorGridLines(pCtx, paddingLeft, paddingTop, appState.width, appState.height, printScale, coordInterval, { isDark: false, lineWidth: Math.max(1, Math.round(printScale * 0.08)) });
     }
 
     // Print Coordinates - Top/Left
